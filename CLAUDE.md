@@ -1,12 +1,14 @@
 # CLAUDE.md (store)
 
-The Secure Sandbox plugin store: one `index.json` and its offline Ed25519 signature
-`index.json.sig`, served from GitHub. Plan: `../app/docs/SANDBOX.md` §5 and §6, milestone M5.
+The Secure Sandbox plugin store: `index.json` and its signature `index.json.sig`, served from
+GitHub. Plan: `../sandbox/docs/PLAN.md` §7, milestone M5.
 
-- `index.json` holds `version` (only ever goes up), `expires`, `minApi`, `plugins[]` (full manifests
-  with pinned commit and every layer's SHA-256) and `templates[]` (name + plugin ids).
-- The signing key never enters this repo or CI. The maintainer signs on their own Mac; Claude
-  prepares the unsigned index and the user signs it.
-- Accepting a plugin = reviewing that plugin repo at one commit, then copying its manifest and hashes.
-- The app's `StoreIndex` reads this format: change both together.
+- `index.json`: `version` (only ever goes up), `expires` (90 days from signing), `minApi`,
+  `plugins[]` (full manifests with pinned commit and every layer's SHA-256), `templates[]`,
+  `revoked[]` (`{id, version, reason}`).
+- Signed only on the maintainer's Ledger (Ed25519, SSH/PGP Agent app, `ssh-keygen -Y sign`, SSHSIG).
+  No private key ever enters this repo or CI. Claude prepares the unsigned index; the user signs.
+- Submissions are PRs adding a plugin repo URL + tag. CI checks hashes, schema, `api`, the `from`
+  base digest and permissions, and comments a report. Merge only after the checklist review.
+- The helper's index checks read this format: change both together.
 - Not on GitHub yet: no remote, no pushing until the user asks.
