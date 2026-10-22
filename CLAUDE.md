@@ -6,9 +6,12 @@ GitHub. Plan: `../sandbox/docs/PLAN.md` §7, milestone M5.
 - `index.json`: `version` (only ever goes up), `expires` (90 days from signing), `minApi`,
   `plugins[]` (full manifests with pinned commit and every layer's SHA-256), `templates[]`,
   `revoked[]` (`{id, version, reason}`).
-- Signed only on the maintainer's Ledger (Ed25519, SSH/PGP Agent app, `ssh-keygen -Y sign`, SSHSIG).
-  No private key ever enters this repo or CI. Claude prepares the unsigned index; the user signs.
-- Submissions are PRs adding a plugin repo URL + tag. CI checks hashes, schema, `api`, the `from`
-  base digest and permissions, and comments a report. Merge only after the checklist review.
+- Signed only on the maintainer's Ledger (Ed25519, SSH/PGP Agent app): `index.json.sig` is the base64
+  signature over SHA-256(index.json), made by `Scripts/ledger-sign.py sign index.json` (not SSHSIG: the
+  app can't make one, M0 0.12). `key.pub` is the key the helper pins. No private key ever enters this
+  repo or CI. Claude prepares the unsigned index (`Scripts/prepare-index.py`); the user signs.
+- Submissions are PRs adding `submissions/<id>.json` (repo URL + tag). CI (`Scripts/check-submission.py`)
+  checks hashes, schema, `api`, the `from` base digest (`bases.json`) and permissions, and comments a
+  report. Merge only after `REVIEW.md`. `Scripts/*.py --selftest` checks the scripts.
 - The helper's index checks read this format: change both together.
 - Not on GitHub yet: no remote, no pushing until the user asks.

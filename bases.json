@@ -1,0 +1,4 @@
+{
+  "_comment": "Released base images (sandbox repo, plan §7). A plugin's `from` must be one of these exactly.",
+  "allowed": []
+}

@@ -1,0 +1,21 @@
+# Opens an issue when the signed index has 30 days or less left (60 days after signing; it expires
+# after 90, and then the sandbox blocks installs and updates). Sign a fresh one before then.
+name: Index expiry
+on:
+  schedule: [{ cron: "0 8 * * *" }]
+  workflow_dispatch:
+permissions: { issues: write, contents: read }
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          left=$(python3 -c "import json,datetime as d; e=d.datetime.fromisoformat(json.load(open('index.json'))['expires'].replace('Z','+00:00')); print((e-d.datetime.now(d.timezone.utc)).days)")
+          echo "days left: $left"
+          [ "$left" -gt 30 ] && exit 0
+          gh issue list --label expiry --state open --json number --jq length | grep -qx 0 || exit 0
+          gh label create expiry --force >/dev/null
+          gh issue create --label expiry --title "Store index expires in $left days" \
+            --body "Run \`python3 Scripts/prepare-index.py\`, sign with \`python3 Scripts/ledger-sign.py sign index.json\`, commit both and push."
