@@ -14,4 +14,4 @@ GitHub. Plan: `../sandbox/docs/PLAN.md` §7, milestone M5.
   checks hashes, schema, `api`, the `from` base digest (`bases.json`) and permissions, and comments a
   report. Merge only after `REVIEW.md`. `Scripts/*.py --selftest` checks the scripts.
 - The helper's index checks read this format: change both together.
-- Not on GitHub yet: no remote, no pushing until the user asks.
+- Public repo: `LordVersA/v2mac-store`. Push when the user asks or CI needs to see it; index signatures still need the Ledger.

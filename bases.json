@@ -1,4 +1,8 @@
 {
-  "_comment": "Released base images (sandbox repo, plan §7). A plugin's `from` must be one of these exactly.",
-  "allowed": []
+  "_comment": "Released base images (sandbox repo, plan \u00a77). A plugin's `from` must be one of these exactly.",
+  "allowed": [
+    "ghcr.io/lordversa/v2mac-base@sha256:e131d75ab664e497fe42454bac9c35f730ed59e43f4291752877421a596f10b1",
+    "ghcr.io/lordversa/v2mac-base-cli@sha256:2ede8fe8521f6ed61481e1a237346161da8240ce768e83e9b8f7025b5b91bf42",
+    "ghcr.io/lordversa/v2mac-base-gui@sha256:17756e028364aa2f128126415d835f7913864c27f152c9073a7aba9f12ebe2cc"
+  ]
 }
