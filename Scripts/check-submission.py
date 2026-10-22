@@ -92,9 +92,25 @@ def selftest():
     for key, bad in [("api", 2), ("id", "a;b"), ("display", "web"), ("permissions", ["camera"]), ("from", "debian"),
                      ("layers", [{"url": "https://evil/l", "sha256": "a" * 64, "size": 10}]), ("launch", {"cmd": []})]:
         assert problems({**good, key: bad}, rel, {"base-cli@sha256:x"}), key
+    import contextlib, io, runpy, tempfile
+    from unittest.mock import patch
+    with tempfile.TemporaryDirectory() as folder:
+        path = os.path.join(folder, "submission.json")
+        with open(path, "w") as f: json.dump({"repo": "https://github.com/a/b", "tag": "v1"}, f)
+        output = io.StringIO()
+        with patch.object(sys, "argv", [__file__, path]), patch("urllib.request.urlopen", side_effect=OSError("offline")), contextlib.redirect_stdout(output):
+            try: runpy.run_path(__file__, run_name="__main__")
+            except SystemExit as error: assert error.code == 1
+            else: raise AssertionError("failed download must fail the check")
+        assert "offline" in output.getvalue(), "CI needs a non-empty report even when a release cannot be fetched"
     print("selftest ok")
 
 if __name__ == "__main__":
     if sys.argv[1:] == ["--selftest"]: selftest(); sys.exit(0)
     if len(sys.argv) not in (2, 4): sys.exit(__doc__)
-    sys.exit(main(sys.argv[1], sys.argv[3] if len(sys.argv) == 4 else None))
+    try:
+        status = main(sys.argv[1], sys.argv[3] if len(sys.argv) == 4 else None)
+    except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
+        print(f"- ❌ Submission check failed: {error}")
+        status = 1
+    sys.exit(status)
