@@ -10,13 +10,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
+      # The checker and bases.json come from the base branch: a PR can't change what judges it.
+      - uses: actions/checkout@v4
+        with: { ref: "${{ github.base_ref }}", path: base }
       - env: { GH_TOKEN: "${{ github.token }}" }
         run: |
-          python3 Scripts/check-submission.py --selftest
+          python3 base/Scripts/check-submission.py --selftest
           status=0
           : > report.md
           for f in $(git diff --name-only --diff-filter=AM origin/${{ github.base_ref }}...HEAD -- submissions/); do
-            python3 Scripts/check-submission.py "$f" >> report.md || status=1
+            python3 base/Scripts/check-submission.py "$f" >> report.md || status=1
             echo >> report.md
           done
           gh pr comment ${{ github.event.pull_request.number }} --body-file report.md
