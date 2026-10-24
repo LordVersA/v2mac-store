@@ -18,4 +18,4 @@ jobs:
           gh issue list --label expiry --state open --json number --jq length | grep -qx 0 || exit 0
           gh label create expiry --force >/dev/null
           gh issue create --label expiry --title "Store index expires in $left days" \
-            --body "Run \`python3 Scripts/prepare-index.py\`, sign with \`python3 Scripts/ledger-sign.py sign index.json\`, commit both and push."
+            --body "Run \`python3 Scripts/prepare-index.py\`, sign with \`swift Scripts/sign.swift sign index.json\`, commit both and push."

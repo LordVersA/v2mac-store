@@ -1,8 +1,76 @@
 {
- "version": 1,
- "expires": "2027-01-20T00:00:00Z",
+ "version": 2,
+ "expires": "2027-01-20T19:39:31Z",
  "minApi": 1,
- "plugins": [],
+ "plugins": [
+  {
+   "api": 1,
+   "id": "hello-pty",
+   "name": "Hello Terminal",
+   "version": "0.1.0",
+   "publisher": "V2Mac",
+   "icon": "icon.svg",
+   "display": "pty",
+   "launch": {
+    "cmd": [
+     "/bin/bash",
+     "-c",
+     "echo 'Hello from a V2Mac mini VM.'; echo \"Exit: $(cat /run/v2mac/exit.json 2>/dev/null)\"; echo \"Time zone: ${TZ:-unknown}\"; exec bash -l"
+    ]
+   },
+   "permissions": [
+    "ssh-agent"
+   ],
+   "changelog": "First sample.",
+   "securityNotes": "Asks for ssh-agent so SSH through the mini VM's exit can use your Mac's keys.",
+   "from": "ghcr.io/lordversa/v2mac-base-cli@sha256:2ede8fe8521f6ed61481e1a237346161da8240ce768e83e9b8f7025b5b91bf42",
+   "source": {
+    "repo": "https://github.com/LordVersA/v2mac-plugin-template",
+    "commit": "e78b3dc28aae4a177e15185e67598dad9e39f62e"
+   },
+   "layers": [
+    {
+     "url": "https://github.com/LordVersA/v2mac-plugin-template/releases/download/hello-pty-v0.1.0/hello-pty-0.1.0.tar",
+     "sha256": "73348ed3a8e6c288ee9bbdd7398c0fe34d8e5af6fc23e441d5696e774cc61692",
+     "size": 428234752
+    }
+   ]
+  },
+  {
+   "api": 1,
+   "id": "hello-gui",
+   "name": "Hello Window",
+   "version": "0.1.0",
+   "publisher": "V2Mac",
+   "icon": "icon.svg",
+   "display": "gui",
+   "launch": {
+    "cmd": [
+     "/bin/bash",
+     "-c",
+     "{ echo 'Hello from a V2Mac mini VM.'; echo \"Exit: $(cat /run/v2mac/exit.json 2>/dev/null)\"; echo \"Time zone: ${TZ:-unknown}\"; echo 'Shared folder:'; ls ~/Shared 2>&1; echo; echo 'Type here; paste with Cmd-V:'; } > /tmp/hello.txt; exec zenity --text-info --editable --title='Hello Window' --width=900 --height=600 --filename=/tmp/hello.txt"
+    ]
+   },
+   "permissions": [
+    "clipboard",
+    "shared"
+   ],
+   "changelog": "First sample.",
+   "securityNotes": "Asks for the clipboard and the Shared folder to show both work.",
+   "from": "ghcr.io/lordversa/v2mac-base-gui@sha256:17756e028364aa2f128126415d835f7913864c27f152c9073a7aba9f12ebe2cc",
+   "source": {
+    "repo": "https://github.com/LordVersA/v2mac-plugin-template",
+    "commit": "e78b3dc28aae4a177e15185e67598dad9e39f62e"
+   },
+   "layers": [
+    {
+     "url": "https://github.com/LordVersA/v2mac-plugin-template/releases/download/hello-gui-v0.1.0/hello-gui-0.1.0.tar",
+     "sha256": "b6b4dbbcdcfc3aa2a78aec83c2fc566c12a95c673bfe03b6d6eb681e23e7eb32",
+     "size": 1004815872
+    }
+   ]
+  }
+ ],
  "templates": [],
  "revoked": []
 }

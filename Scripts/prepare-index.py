@@ -2,7 +2,7 @@
 
 Usage: prepare-index.py [--add plugin.json ...] [--revoke ID VERSION REASON ...] [--template ID NAME PLUGIN,PLUGIN ...]
 --add takes a plugin.json that passed Scripts/check-submission.py (its layers and source pinned).
-Then sign it on the Ledger: python3 Scripts/ledger-sign.py sign index.json
+Then sign it on the maintainer's Mac: swift Scripts/sign.swift sign index.json
 """
 import datetime, json, os, sys
 
@@ -47,4 +47,4 @@ if __name__ == "__main__":
             f.write("\n")
         if os.path.exists(INDEX + ".sig"):
             os.remove(INDEX + ".sig")  # the old signature no longer matches
-        print(f"index.json version {index['version']}, expires {index['expires']}. Now sign it on the Ledger.")
+        print(f"index.json version {index['version']}, expires {index['expires']}. Now sign it: swift Scripts/sign.swift sign index.json")
