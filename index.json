@@ -1,41 +1,8 @@
 {
- "version": 2,
- "expires": "2027-01-20T19:39:31Z",
+ "version": 3,
+ "expires": "2027-01-22T10:14:17Z",
  "minApi": 1,
  "plugins": [
-  {
-   "api": 1,
-   "id": "hello-pty",
-   "name": "Hello Terminal",
-   "version": "0.1.0",
-   "publisher": "V2Mac",
-   "icon": "icon.svg",
-   "display": "pty",
-   "launch": {
-    "cmd": [
-     "/bin/bash",
-     "-c",
-     "echo 'Hello from a V2Mac mini VM.'; echo \"Exit: $(cat /run/v2mac/exit.json 2>/dev/null)\"; echo \"Time zone: ${TZ:-unknown}\"; exec bash -l"
-    ]
-   },
-   "permissions": [
-    "ssh-agent"
-   ],
-   "changelog": "First sample.",
-   "securityNotes": "Asks for ssh-agent so SSH through the mini VM's exit can use your Mac's keys.",
-   "from": "ghcr.io/lordversa/v2mac-base-cli@sha256:2ede8fe8521f6ed61481e1a237346161da8240ce768e83e9b8f7025b5b91bf42",
-   "source": {
-    "repo": "https://github.com/LordVersA/v2mac-plugin-template",
-    "commit": "e78b3dc28aae4a177e15185e67598dad9e39f62e"
-   },
-   "layers": [
-    {
-     "url": "https://github.com/LordVersA/v2mac-plugin-template/releases/download/hello-pty-v0.1.0/hello-pty-0.1.0.tar",
-     "sha256": "73348ed3a8e6c288ee9bbdd7398c0fe34d8e5af6fc23e441d5696e774cc61692",
-     "size": 428234752
-    }
-   ]
-  },
   {
    "api": 1,
    "id": "hello-gui",
@@ -68,7 +35,8 @@
      "sha256": "b6b4dbbcdcfc3aa2a78aec83c2fc566c12a95c673bfe03b6d6eb681e23e7eb32",
      "size": 1004815872
     }
-   ]
+   ],
+   "description": "A small sample window app: shows the mini VM's exit and time zone, lists its Shared folder and lets you type and paste."
   }
  ],
  "templates": [],
