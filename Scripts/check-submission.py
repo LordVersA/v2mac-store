@@ -3,7 +3,8 @@
 Usage: check-submission.py submissions/<id>.json [--out plugin.json]
 A submission is {"repo": "https://github.com/<owner>/<name>", "tag": "<tag>"}. The release at that tag
 must carry plugin.json; every layer it lists must be an asset of the same release, and match its
-size and SHA-256. The rules mirror the helper's (PluginManifest.validateForStore): change both together.
+size and SHA-256. Its `icon`, an SVG asset of the same release, is copied in as `iconSvg` so the signed
+index carries it. The rules mirror the helper's (PluginManifest.validateForStore): change both together.
 Exit 0 when every check passes; --out writes the checked plugin.json for prepare-index.py --add.
 """
 import hashlib, json, os, re, sys, urllib.request
@@ -11,6 +12,7 @@ import hashlib, json, os, re, sys, urllib.request
 API = 1
 PERMISSIONS = {"clipboard", "shared", "ssh-agent"}
 MAX_LAYER = 4 << 30
+MAX_ICON = 64 << 10
 WORD = re.compile(r"^[0-9A-Za-z.-]{1,64}$")
 ENV_KEY = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 BASES = os.path.join(os.path.dirname(__file__), "..", "bases.json")
@@ -41,6 +43,13 @@ def problems(manifest, release, bases):
         if not re.match(r"^[0-9a-f]{64}$", str(layer.get("sha256", ""))): out.append("layer `sha256` must be 64 lowercase hex")
         if not isinstance(layer.get("size"), int) or not 1 <= layer["size"] <= MAX_LAYER: out.append("layer `size` must be 1 B – 4 GB")
     return out
+
+def icon_problem(svg):
+    """An icon must be a small, self-contained SVG: no scripts, no embedded HTML, nothing fetched."""
+    if len(svg.encode()) > MAX_ICON: return "larger than 64 KB"
+    if "<svg" not in svg: return "not an SVG"
+    if re.search(r"<script|<foreignObject|\bon\w+\s*=|(href|src)\s*=\s*[\"'](?!#)|url\(\s*['\"]?(?!#)", svg, re.I): return "has scripts or external references"
+    return None
 
 def fetch(url, limit):
     req = urllib.request.Request(url, headers={"User-Agent": "v2mac-store-check"})
@@ -75,6 +84,16 @@ def main(path, out_path):
         for layer in manifest["layers"]:
             err = check_layer(layer)
             if err: found.append(f"layer {layer['url']}: {err}")
+    icon = manifest.get("icon")
+    if not found and icon:
+        if not WORD.match(icon): found.append("`icon` must be a plain release asset filename")
+        else:
+            with fetch(release + icon, MAX_ICON) as r: data = r.read(MAX_ICON + 1)
+            try: svg = data.decode()
+            except UnicodeDecodeError: svg = ""
+            err = icon_problem(svg)
+            if err: found.append(f"icon {icon}: {err}")
+            else: manifest["iconSvg"] = svg
     report.append(f"- id `{manifest.get('id')}`, version `{manifest.get('version')}`, display `{manifest.get('display')}`, commit `{commit}`")
     report.append(f"- permissions: {', '.join(manifest.get('permissions') or []) or 'none'}")
     report += [f"- ❌ {p}" for p in found] or ["- ✅ every automatic check passed. Review it with REVIEW.md before merging."]
@@ -92,6 +111,10 @@ def selftest():
     for key, bad in [("api", 2), ("id", "a;b"), ("display", "web"), ("permissions", ["camera"]), ("from", "debian"),
                      ("layers", [{"url": "https://evil/l", "sha256": "a" * 64, "size": 10}]), ("launch", {"cmd": []})]:
         assert problems({**good, key: bad}, rel, {"base-cli@sha256:x"}), key
+    assert icon_problem("<svg xmlns='http://www.w3.org/2000/svg'><rect fill='url(#g)'/></svg>") is None
+    for bad in ["<svg><script>x</script></svg>", "<svg><image href='https://e/x.png'/></svg>", "<svg onload='x'/>",
+                "<svg><rect style=\"fill:url(https://e)\"/></svg>", "<png>", "<svg>" + " " * MAX_ICON + "</svg>"]:
+        assert icon_problem(bad), bad
     import contextlib, io, runpy, tempfile
     from unittest.mock import patch
     with tempfile.TemporaryDirectory() as folder:
