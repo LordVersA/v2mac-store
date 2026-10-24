@@ -7,7 +7,7 @@ size and SHA-256. Its `icon`, an SVG asset of the same release, is copied in as 
 index carries it. The rules mirror the helper's (PluginManifest.validateForStore): change both together.
 Exit 0 when every check passes; --out writes the checked plugin.json for prepare-index.py --add.
 """
-import hashlib, json, os, re, sys, urllib.request
+import hashlib, json, os, re, sys, urllib.request, xml.etree.ElementTree
 
 API = 1
 PERMISSIONS = {"clipboard", "shared", "ssh-agent"}
@@ -44,11 +44,25 @@ def problems(manifest, release, bases):
         if not isinstance(layer.get("size"), int) or not 1 <= layer["size"] <= MAX_LAYER: out.append("layer `size` must be 1 B – 4 GB")
     return out
 
+SVG = "{http://www.w3.org/2000/svg}"
+ICON_TAGS = {"svg", "g", "defs", "title", "desc", "path", "rect", "circle", "ellipse", "line", "polyline", "polygon",
+             "linearGradient", "radialGradient", "stop", "clipPath", "mask", "use"}
+
 def icon_problem(svg):
-    """An icon must be a small, self-contained SVG: no scripts, no embedded HTML, nothing fetched."""
+    """An icon must be a small, self-contained SVG of plain shapes: parsed, every element on an allowlist,
+    no event handlers, and every reference within the file (`#id`)."""
     if len(svg.encode()) > MAX_ICON: return "larger than 64 KB"
-    if "<svg" not in svg: return "not an SVG"
-    if re.search(r"<script|<foreignObject|\bon\w+\s*=|(href|src)\s*=\s*[\"'](?!#)|url\(\s*['\"]?(?!#)", svg, re.I): return "has scripts or external references"
+    if re.search(r"<!|<\?(?!xml\s)", svg): return "has a DOCTYPE, entity, CDATA or processing instruction"
+    try: root = xml.etree.ElementTree.fromstring(svg)
+    except xml.etree.ElementTree.ParseError: return "not valid XML"
+    if root.tag != SVG + "svg": return "not an SVG"
+    for el in root.iter():
+        if not el.tag.startswith(SVG) or el.tag[len(SVG):] not in ICON_TAGS: return f"element {el.tag} is not allowed"
+        for name, value in el.attrib.items():
+            local = name.rsplit("}", 1)[-1].lower()
+            if local.startswith("on") or local == "style": return f"attribute {local} is not allowed"
+            if local in ("href", "src") and not value.startswith("#"): return "refers outside the file"
+            if re.search(r"url\(\s*['\"]?(?!#)", value, re.I): return "refers outside the file"
     return None
 
 def fetch(url, limit):
@@ -75,6 +89,7 @@ def main(path, out_path):
         print("\n".join(report + ["- ❌ `repo` must be https://github.com/<owner>/<name> and `tag` a plain tag"])); return 1
     release = f"{repo}/releases/download/{tag}/"
     manifest = json.load(fetch(release + "plugin.json", 1 << 20))
+    manifest.pop("iconSvg", None)  # only ever this check's copy of the release's icon
     bases = set(json.load(open(BASES))["allowed"])
     found = problems(manifest, release, bases)
     commit = json.load(fetch(f"https://api.github.com/repos/{owner_name.group(1)}/commits/{tag}", 1 << 20))["sha"]
@@ -86,7 +101,7 @@ def main(path, out_path):
             if err: found.append(f"layer {layer['url']}: {err}")
     icon = manifest.get("icon")
     if not found and icon:
-        if not WORD.match(icon): found.append("`icon` must be a plain release asset filename")
+        if not isinstance(icon, str) or not WORD.match(icon): found.append("`icon` must be a plain release asset filename")
         else:
             with fetch(release + icon, MAX_ICON) as r: data = r.read(MAX_ICON + 1)
             try: svg = data.decode()
@@ -111,9 +126,13 @@ def selftest():
     for key, bad in [("api", 2), ("id", "a;b"), ("display", "web"), ("permissions", ["camera"]), ("from", "debian"),
                      ("layers", [{"url": "https://evil/l", "sha256": "a" * 64, "size": 10}]), ("launch", {"cmd": []})]:
         assert problems({**good, key: bad}, rel, {"base-cli@sha256:x"}), key
-    assert icon_problem("<svg xmlns='http://www.w3.org/2000/svg'><rect fill='url(#g)'/></svg>") is None
-    for bad in ["<svg><script>x</script></svg>", "<svg><image href='https://e/x.png'/></svg>", "<svg onload='x'/>",
-                "<svg><rect style=\"fill:url(https://e)\"/></svg>", "<png>", "<svg>" + " " * MAX_ICON + "</svg>"]:
+    ns = "xmlns='http://www.w3.org/2000/svg'"
+    assert icon_problem(f"<?xml version='1.0'?><svg {ns}><rect fill='url(#g)'/><use href='#a'/></svg>") is None
+    for bad in [f"<svg {ns}><script>x</script></svg>", f"<svg {ns}><image href='https://e/x.png'/></svg>", f"<svg {ns} onload='x'/>",
+                f"<svg {ns}><rect fill='url(https://e)'/></svg>", f"<svg {ns}><style>*{{}}</style></svg>", f"<svg {ns} style='x'/>",
+                f"<svg {ns}><foreignObject/></svg>", f"<svg {ns} xmlns:x='http://www.w3.org/1999/xlink'><use x:href='https://e'/></svg>",
+                f"<svg {ns}><s:script xmlns:s='http://www.w3.org/2000/svg'/></svg>", "<!DOCTYPE svg [<!ENTITY a 'b'>]><svg/>",
+                f"<svg {ns}><![CDATA[x]]></svg>", "<svg><rect/></svg>", "<png/>", f"<svg {ns}>" + " " * MAX_ICON + "</svg>"]:
         assert icon_problem(bad), bad
     import contextlib, io, runpy, tempfile
     from unittest.mock import patch
