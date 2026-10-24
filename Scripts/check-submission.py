@@ -46,23 +46,24 @@ def problems(manifest, release, bases):
 
 SVG = "{http://www.w3.org/2000/svg}"
 ICON_TAGS = {"svg", "g", "defs", "title", "desc", "path", "rect", "circle", "ellipse", "line", "polyline", "polygon",
-             "linearGradient", "radialGradient", "stop", "clipPath", "mask", "use"}
+             "linearGradient", "radialGradient", "stop", "clipPath", "mask"}
 
 def icon_problem(svg):
-    """An icon must be a small, self-contained SVG of plain shapes: parsed, every element on an allowlist,
-    no event handlers, and every reference within the file (`#id`)."""
+    """An icon must be a small, self-contained SVG of plain shapes: parsed, at most 1000 elements on an
+    allowlist (no `use`, so nothing multiplies), no event handlers, and references only as `url(#id)`."""
     if len(svg.encode()) > MAX_ICON: return "larger than 64 KB"
     if re.search(r"<!|<\?(?!xml\s)", svg): return "has a DOCTYPE, entity, CDATA or processing instruction"
     try: root = xml.etree.ElementTree.fromstring(svg)
     except xml.etree.ElementTree.ParseError: return "not valid XML"
     if root.tag != SVG + "svg": return "not an SVG"
+    if sum(1 for _ in root.iter()) > 1000: return "more than 1000 elements"
     for el in root.iter():
         if not el.tag.startswith(SVG) or el.tag[len(SVG):] not in ICON_TAGS: return f"element {el.tag} is not allowed"
         for name, value in el.attrib.items():
             local = name.rsplit("}", 1)[-1].lower()
-            if local.startswith("on") or local == "style": return f"attribute {local} is not allowed"
-            if local in ("href", "src") and not value.startswith("#"): return "refers outside the file"
-            if re.search(r"url\(\s*['\"]?(?!#)", value, re.I): return "refers outside the file"
+            if local.startswith("on") or local in ("style", "base", "href", "src", "cursor", "filter"): return f"attribute {local} is not allowed"
+            if "\\" in value or "/*" in value: return "has escapes or comments in an attribute"
+            if re.sub(r"url\(\s*#[A-Za-z_][\w.-]*\s*\)", "", value).lower().count("url("): return "refers outside the file"
     return None
 
 def fetch(url, limit):
@@ -127,12 +128,14 @@ def selftest():
                      ("layers", [{"url": "https://evil/l", "sha256": "a" * 64, "size": 10}]), ("launch", {"cmd": []})]:
         assert problems({**good, key: bad}, rel, {"base-cli@sha256:x"}), key
     ns = "xmlns='http://www.w3.org/2000/svg'"
-    assert icon_problem(f"<?xml version='1.0'?><svg {ns}><rect fill='url(#g)'/><use href='#a'/></svg>") is None
+    assert icon_problem(f"<?xml version='1.0'?><svg {ns}><rect fill='url(#g)' clip-path='url( #c )'/></svg>") is None
     for bad in [f"<svg {ns}><script>x</script></svg>", f"<svg {ns}><image href='https://e/x.png'/></svg>", f"<svg {ns} onload='x'/>",
                 f"<svg {ns}><rect fill='url(https://e)'/></svg>", f"<svg {ns}><style>*{{}}</style></svg>", f"<svg {ns} style='x'/>",
                 f"<svg {ns}><foreignObject/></svg>", f"<svg {ns} xmlns:x='http://www.w3.org/1999/xlink'><use x:href='https://e'/></svg>",
                 f"<svg {ns}><s:script xmlns:s='http://www.w3.org/2000/svg'/></svg>", "<!DOCTYPE svg [<!ENTITY a 'b'>]><svg/>",
-                f"<svg {ns}><![CDATA[x]]></svg>", "<svg><rect/></svg>", "<png/>", f"<svg {ns}>" + " " * MAX_ICON + "</svg>"]:
+                f"<svg {ns}><![CDATA[x]]></svg>", "<svg><rect/></svg>", "<png/>", f"<svg {ns}><use href='#a'/></svg>", f"<svg {ns} xml:base='https://e/'/>",
+                f"<svg {ns}><rect fill='u\\72l(https://e)'/></svg>", f"<svg {ns}><rect fill='url(#a) url(https://e)'/></svg>",
+                f"<svg {ns}><rect fill='URL(x)'/></svg>", f"<svg {ns}>" + "<g/>" * 1001 + "</svg>", f"<svg {ns}>" + " " * MAX_ICON + "</svg>"]:
         assert icon_problem(bad), bad
     import contextlib, io, runpy, tempfile
     from unittest.mock import patch
