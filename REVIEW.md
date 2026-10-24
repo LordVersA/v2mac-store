@@ -9,7 +9,8 @@ published*, not *safe*: this review is what stands behind the store.
 3. **Build is the release.** The layers came from the repo's release CI at that tag (workflow run
    visible), not uploaded by hand.
 4. **Permissions** are the fewest it needs: `ssh-agent` only for SSH tools, `shared` only to exchange
-   files, `clipboard` only where copy/paste is the point. The reason is in `securityNotes`.
+   files, `clipboard` only where copy/paste is the point, `sound` only for apps that play audio,
+   `microphone` only for calls or recording. The reason is in `securityNotes`.
 5. **Launch**: `launch.cmd` starts the app itself; no shell tricks that fetch code at runtime.
 6. **No network or VM setup** in the plugin (no vsock, iptables, mounts, setuid): the runtime owns those.
 7. **Name and icon** don't impersonate another app or V2Mac.

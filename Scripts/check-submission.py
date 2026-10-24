@@ -10,7 +10,7 @@ Exit 0 when every check passes; --out writes the checked plugin.json for prepare
 import hashlib, json, os, re, sys, urllib.request, xml.etree.ElementTree
 
 API = 1
-PERMISSIONS = {"clipboard", "shared", "ssh-agent"}
+PERMISSIONS = {"clipboard", "shared", "ssh-agent", "sound", "microphone"}
 MAX_LAYER = 4 << 30
 MAX_ICON = 64 << 10
 WORD = re.compile(r"^[0-9A-Za-z.-]{1,64}$")
@@ -37,7 +37,7 @@ def problems(manifest, release, bases):
     src = m.get("source") or {}
     if not src.get("repo") or not src.get("commit"): out.append("`source.repo` and `source.commit` are required")
     layers = m.get("layers")
-    if not isinstance(layers, list) or not 1 <= len(layers) <= 64: out.append("`layers` must list 1–64 layers")
+    if not isinstance(layers, list) or len(layers) != 1: out.append("`layers` must list exactly one archive (Scripts/package.sh makes it)")
     for layer in layers or []:
         if not str(layer.get("url", "")).startswith(release): out.append(f"layer {layer.get('url')} is not an asset of this release")
         if not re.match(r"^[0-9a-f]{64}$", str(layer.get("sha256", ""))): out.append("layer `sha256` must be 64 lowercase hex")
