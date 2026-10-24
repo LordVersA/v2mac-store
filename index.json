@@ -1,6 +1,6 @@
 {
- "version": 3,
- "expires": "2027-01-22T10:14:17Z",
+ "version": 4,
+ "expires": "2027-01-22T14:24:22Z",
  "minApi": 1,
  "plugins": [
   {
@@ -36,7 +36,8 @@
      "size": 1004815872
     }
    ],
-   "description": "A small sample window app: shows the mini VM's exit and time zone, lists its Shared folder and lets you type and paste."
+   "description": "A small sample window app: shows the mini VM's exit and time zone, lists its Shared folder and lets you type and paste.",
+   "iconSvg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"128\" height=\"128\" viewBox=\"0 0 128 128\">\n  <rect width=\"128\" height=\"128\" rx=\"26\" fill=\"#234858\"/>\n  <rect x=\"24\" y=\"30\" width=\"80\" height=\"68\" rx=\"6\" fill=\"#d4ecdf\"/>\n  <path d=\"M24 48h80\" stroke=\"#234858\" stroke-width=\"6\"/>\n</svg>\n"
   }
  ],
  "templates": [],
